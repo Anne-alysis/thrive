@@ -28,7 +28,7 @@ def upgrade() -> None:
     op.execute("""
         CREATE TABLE thrive_user.user
         (
-            user_id             integer                  not null primary key,
+            user_id             serial primary key,
             first_name          character varying,
             last_name           character varying,
             signup_at           timestamp with time zone not null,
