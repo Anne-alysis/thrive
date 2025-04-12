@@ -65,8 +65,8 @@ def upgrade() -> None:
     op.execute("""
         CREATE TABLE incident.category
         (
-            category            character varying,
-            sub_category        character varying,
+            category            character varying not null,
+            sub_category        character varying not null,
             description         character varying,
             thrive_created_dtm  timestamp with time zone not null,
             thrive_modified_dtm timestamp with time zone not null
