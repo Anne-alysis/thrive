@@ -1,7 +1,7 @@
 import datetime
 import re
 import calendar
-
+from termios import VLNEXT
 
 import numpy as np
 import pandas as pd
@@ -44,6 +44,8 @@ can also include lower and upper case letters
 
 
 """
+# set seed for same results
+np.random.seed(47)
 
 
 # this is super overkill perhaps, but fun to see these in action
@@ -92,23 +94,45 @@ def extract_possible_incident_date(s: str) -> str:
 
     return None
 
-def estimate_day_if_none(s: str) -> str:
-    if not s:
-        return s
 
-    split_s = s.split(' ')
+def estimate_date(parsed_date: str, period_start_date: pd.Timestamp, period_end_date: pd.Timestamp) -> pd.Timestamp:
+    if parsed_date is None:
+        return pd.Timestamp(np.random.uniform(period_start_date.to_datetime64(), period_end_date.to_datetime64()))
 
-    # no processing needed
-    if len(split_s) == 2 and split_s[1].isnumeric():
-        return s
+    first_try_year = estimate_date_for_given_year(parsed_date, period_start_date)
+    if period_start_date <= first_try_year <= period_end_date:
+        return pd.to_datetime(first_try_year)
 
-    if len(split_s) == 1:
-        # for simplicity, choosing random date from 1 to 28, to make sure
-        # we don't overthrow a month that ends earlier than 31.
-        random_date = np.random.randint(1, 29)
-        return s + f" {random_date}"
+    second_try_year = estimate_date_for_given_year(parsed_date, period_end_date)
+    if period_start_date<= second_try_year <= period_end_date:
+        return pd.to_datetime(second_try_year)
 
-    raise ValueError(f"Found length that do not know how to process: {s}")
+    raise ValueError(f"Cannot find adequate date for {parsed_date} between {period_start_date} and {period_end_date}")
+
+
+def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) -> datetime.datetime:
+    year = period_date.year
+
+    split_parsed_date = parsed_date.split(" ")
+    month = split_parsed_date[0].capitalize()
+
+    if month in calendar.month_name:
+        month_format = "%B"
+    elif month in calendar.month_abbr:
+        month_format = "%b"
+    else:
+        raise ValueError(f"Cannot find valid month from {month}")
+
+    month_num = datetime.datetime.strptime(month, month_format).month
+
+    if len(split_parsed_date) > 1 and split_parsed_date[1].isnumeric():
+        day = int(split_parsed_date[1])
+    else:
+        # need to estimate day
+        last_day_of_month = calendar.monthrange(year, month_num)[1]
+        day = np.random.randint(1, last_day_of_month + 1)
+
+    return datetime.datetime(year, month_num, day)
 
 
 filename = 'data/incidents.txt'
@@ -125,12 +149,6 @@ incident_df = pd.DataFrame(incidents_cleaned, columns=['full_incident'])
 # transform the data into only a list of incidents and a period start and end
 incident_df = get_period_boundaries(incident_df)
 
-incident_df['possible_date'] = incident_df.full_incident.apply(extract_possible_incident_date)
-incident_df['estimated_date'] = incident_df.possible_date.apply(estimate_day_if_none)
-incident_df[['month', 'day']] = incident_df.possible_date.str.split(' ', n=1, expand=True)
-
-def parse_date(start_date: pd.Timestamp, end_date: pd.Timestamp)
-
-
-list(calendar.month_abbr)
-list(calendar.month_name)
+incident_df['parsed_date'] = incident_df.full_incident.apply(extract_possible_incident_date)
+incident_df['estimated_date'] = incident_df \
+    .apply(lambda x: estimate_date(x.parsed_date, x.period_start_date, x.period_end_date), axis=1)
