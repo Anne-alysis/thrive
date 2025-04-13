@@ -1,7 +1,12 @@
 import datetime
-import pandas as pd
+import re
+import calendar
+
+
 import numpy as np
+import pandas as pd
 from pandas.tseries.offsets import MonthEnd
+from dataclasses import dataclass
 
 """
 # Overview
@@ -41,6 +46,13 @@ can also include lower and upper case letters
 """
 
 
+# this is super overkill perhaps, but fun to see these in action
+@dataclass
+class PatternGroup:
+    pattern: str  # regex pattern to match on string
+    group: int  # which group to extract of matched pattern
+
+
 def get_period_boundaries(incident_df: pd.DataFrame) -> pd.DataFrame:
     """
     This transforms the header time period of each section into start/end dates
@@ -66,8 +78,38 @@ def get_period_boundaries(incident_df: pd.DataFrame) -> pd.DataFrame:
     return incident_df
 
 
-# def parse_date(s: str) -> datetime.date:
-#
+def extract_possible_incident_date(s: str) -> str:
+    # look for dates given possible patterns
+    patterns = [
+        PatternGroup(r"^\s*\[(.*?)\]", 1),  # brackets
+        PatternGroup(r"^\s*(\w+(\s+\w+)?)\.", 0)  # no brackets
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern.pattern, s)
+        if match:
+            return match.group(pattern.group).strip('.').strip(' ')
+
+    return None
+
+def estimate_day_if_none(s: str) -> str:
+    if not s:
+        return s
+
+    split_s = s.split(' ')
+
+    # no processing needed
+    if len(split_s) == 2 and split_s[1].isnumeric():
+        return s
+
+    if len(split_s) == 1:
+        # for simplicity, choosing random date from 1 to 28, to make sure
+        # we don't overthrow a month that ends earlier than 31.
+        random_date = np.random.randint(1, 29)
+        return s + f" {random_date}"
+
+    raise ValueError(f"Found length that do not know how to process: {s}")
+
 
 filename = 'data/incidents.txt'
 
@@ -75,7 +117,7 @@ with open(filename) as file:
     incidents = file.readlines()
 
 # remove blank lines, clean up newline metadata
-incidents_cleaned = [incident.strip('\n') for incident in incidents if incident != '\n']
+incidents_cleaned = [incident.strip('\n').strip("-") for incident in incidents if incident != '\n']
 
 # convert to dataframe
 incident_df = pd.DataFrame(incidents_cleaned, columns=['full_incident'])
@@ -83,4 +125,12 @@ incident_df = pd.DataFrame(incidents_cleaned, columns=['full_incident'])
 # transform the data into only a list of incidents and a period start and end
 incident_df = get_period_boundaries(incident_df)
 
+incident_df['possible_date'] = incident_df.full_incident.apply(extract_possible_incident_date)
+incident_df['estimated_date'] = incident_df.possible_date.apply(estimate_day_if_none)
+incident_df[['month', 'day']] = incident_df.possible_date.str.split(' ', n=1, expand=True)
 
+def parse_date(start_date: pd.Timestamp, end_date: pd.Timestamp)
+
+
+list(calendar.month_abbr)
+list(calendar.month_name)
