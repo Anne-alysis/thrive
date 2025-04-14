@@ -107,30 +107,36 @@ def upload_data(upload_df: pd.DataFrame) -> None:
             CREATE TEMPORARY TABLE tmp_incident (   
             user_id             integer not null,
             incident_at         timestamp with time zone,
-            category            varchar,
-            subcategory        varchar,
-            description         varchar);
-    
+            category            character varying,
+            subcategory         character varying,
+            severity            character varying,
+            custom_label        character varying,
+            description         character varying);
         """))
 
         upload_df.to_sql("tmp_incident", txn, if_exists='append', index=False, chunksize=500, method='multi')
 
         r = txn.execute(text("""
             INSERT INTO incident.incident as i 
-            (user_id, incident_at, category, subcategory, description)
+            (user_id, incident_at, category, subcategory, severity, custom_label, description)
                 SELECT t.user_id
                 , t.incident_at
                 , t.category
                 , t.subcategory
+                , t.severity
+                , t.custom_label
                 , t.description
                 FROM tmp_incident t
             ON CONFLICT (user_id, incident_at, description) 
             DO UPDATE SET
                 category = EXCLUDED.category
                 , subcategory = EXCLUDED.subcategory
+                , severity = EXCLUDED.severity
+                , custom_label = EXCLUDED.custom_label
             WHERE i.category is distinct from EXCLUDED.category 
             or i.subcategory is distinct from EXCLUDED.subcategory
-    
+            or i.severity is distinct from EXCLUDED.severity
+            or i.custom_label is distinct from EXCLUDED.custom_label
     
         """))
         logging.info(f"Rows upserted: {r.rowcount}")
@@ -138,6 +144,3 @@ def upload_data(upload_df: pd.DataFrame) -> None:
         txn.execute(text("""DROP TABLE IF EXISTS tmp_incident;"""))
 
     return
-
-    # change subcategory
-    # add priority and other columns

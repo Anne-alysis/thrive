@@ -46,6 +46,7 @@ def upgrade() -> None:
         )
     """)
 
+    # note: the category, subcategory, and severity should probably be enums, but since this is experimental, will leave for flexibility
     op.execute ("""
         CREATE TABLE incident.incident
         (
@@ -53,7 +54,9 @@ def upgrade() -> None:
             user_id             integer                  not null,
             incident_at         timestamp with time zone,
             category            character varying,
-            subcategory        character varying,
+            subcategory         character varying,
+            severity            character varying, 
+            custom_label        character varying, 
             description         character varying,
             thrive_created_dtm  timestamp with time zone not null default now(),
             thrive_modified_dtm timestamp with time zone not null default now()
@@ -87,7 +90,7 @@ def upgrade() -> None:
         CREATE TABLE incident.category
         (
             category            character varying not null,
-            subcategory        character varying not null,
+            subcategory         character varying not null,
             description         character varying,
             thrive_created_dtm  timestamp with time zone not null default now(),
             thrive_modified_dtm timestamp with time zone not null default now()
