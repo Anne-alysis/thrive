@@ -1,14 +1,15 @@
 import calendar
 import datetime
 import logging
-import os
 import re
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from pandas.tseries.offsets import MonthEnd
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+
+from db_utils import get_engine
 
 
 # this is super overkill perhaps, but fun to see these in action
@@ -99,11 +100,7 @@ def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) ->
 
 
 def upload_data(upload_df: pd.DataFrame) -> None:
-    db_url = os.environ.get("LOCAL_DB_URL")
-    if db_url is None:
-        raise ValueError("Cannot get url! ")
-
-    engine = create_engine(db_url)
+    engine = get_engine()
 
     with engine.begin() as txn:
         txn.execute(text("""

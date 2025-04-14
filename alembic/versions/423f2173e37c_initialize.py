@@ -60,6 +60,7 @@ def upgrade() -> None:
         );
     """)
 
+    # note: i do not love using both a timestamp and description.  this seems weird and inefficient but for now it works
     op.execute("CREATE UNIQUE INDEX on incident.incident (user_id, incident_at, description)")
 
     conn = op.get_bind()
