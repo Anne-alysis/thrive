@@ -16,9 +16,11 @@ This script:
 - puts it in the database
 
 # Overall Data Structure and Processing Logic
-This assumes the data is chunked in sections of time (called "periods" below), 
-where each section has a header that is followed by a list of incidents.  This list may 
-or may not have a well-structured date associated with it.  If it does not, a date will 
+This assumes the data may be chunked in sections of time (called "periods" below), 
+where each section has a header that is followed by a list of incidents.  If no header exists,
+dates will not be inferred.  
+
+This list may or may not have a well-structured date associated with it.  If it does not, a date will 
 be estimated in the following way:
 
 1. if a specific date is given, use it
@@ -54,19 +56,22 @@ def read_data_into_raw_df(filename: str) -> pd.DataFrame:
         incidents = file.readlines()
 
     # remove blank lines, clean up newline metadata
-    incidents_cleaned = [incident.strip('\n').strip("-") for incident in incidents if incident != '\n']
+    incidents_cleaned = [incident.strip('\n').strip('\t').strip("-") for incident in incidents if incident != '\n']
 
     # convert to dataframe
     return pd.DataFrame(incidents_cleaned, columns=['full_incident'])
 
 
-def transform_data_for_upload(incident_df: pd.DataFrame) -> pd.DataFrame:
+def transform_data_for_upload(incident_df: pd.DataFrame, infer_dates: bool) -> pd.DataFrame:
     # transform the data into only a list of incidents and a period start and end
     incident_df = get_period_boundaries(incident_df)
 
     incident_df['parsed_date'] = incident_df.full_incident.apply(extract_possible_incident_date)
-    incident_df['incident_at'] = incident_df \
-        .apply(lambda x: estimate_date(x.parsed_date, x.period_start_date, x.period_end_date), axis=1)
+    if infer_dates:
+        incident_df['incident_at'] = incident_df \
+            .apply(lambda x: estimate_date(x.parsed_date, x.period_start_date, x.period_end_date), axis=1)
+    else:
+        incident_df['incident_at'] = np.nan
 
     incident_df['description'] = incident_df \
         .apply(lambda x: x.full_incident.replace(x.parsed_date or '', '').replace('[]', '').strip(' ').strip('.'),
@@ -86,6 +91,8 @@ def transform_data_for_upload(incident_df: pd.DataFrame) -> pd.DataFrame:
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--filename', type=str, help='Specify raw markdown file to read from')
+    parser.add_argument('--infer-dates', help='Add if want to estimate dates from headers',
+                        action='store_true', default=False)
 
     args = parser.parse_known_args()
     if args.filename:
@@ -93,11 +100,13 @@ def main():
     else:
         filename = 'data/incidents.txt'
 
+    infer_dates = True if args.infer_dates else False
+
     logging.info(f"Reading data from {filename}..")
     incident_df = read_data_into_raw_df(filename)
 
     logging.info("Transforming data...")
-    upload_df = transform_data_for_upload(incident_df)
+    upload_df = transform_data_for_upload(incident_df, infer_dates)
 
     logging.info("Uploading data into db...")
     upload_data(upload_df)
