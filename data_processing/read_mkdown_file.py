@@ -1,12 +1,11 @@
-import datetime
-import re
-import calendar
-from termios import VLNEXT
+import logging
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.offsets import MonthEnd
-from dataclasses import dataclass
+
+from data_processing.utilities import get_period_boundaries, extract_possible_incident_date, estimate_date, upload_data
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
 """
 # Overview
@@ -47,94 +46,6 @@ can also include lower and upper case letters
 # set seed for same results
 np.random.seed(47)
 
-
-# this is super overkill perhaps, but fun to see these in action
-@dataclass
-class PatternGroup:
-    pattern: str  # regex pattern to match on string
-    group: int  # which group to extract of matched pattern
-
-
-def get_period_boundaries(incident_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    This transforms the header time period of each section into start/end dates
-    for each incident period
-
-    :param incident_df: unprocessed initial data frame
-    :return: cleaned up data frame
-    """
-
-    # create period column, fill forward, and get period start and end dates
-    incident_df['period'] = np.where(incident_df.full_incident.str.startswith("#"),
-                                     incident_df.full_incident.str.strip("# "), np.nan)
-
-    incident_df = incident_df.ffill()
-    incident_df[['period_start_date_str', 'period_end_date_str']] = incident_df['period'].str.split('-', expand=True)
-    incident_df['period_start_date'] = pd.to_datetime(incident_df['period_start_date_str'], format='mixed')
-    incident_df['period_end_date'] = pd.to_datetime(incident_df['period_end_date_str'], format='mixed') + MonthEnd(0)
-
-    # remove unnecessary headers and columns
-    incident_df = incident_df[~incident_df.full_incident.str.startswith('#')] \
-        .drop(columns=['period', 'period_start_date_str', 'period_end_date_str'])
-
-    return incident_df
-
-
-def extract_possible_incident_date(s: str) -> str:
-    # look for dates given possible patterns
-    patterns = [
-        PatternGroup(r"^\s*\[(.*?)\]", 1),  # brackets
-        PatternGroup(r"^\s*(\w+(\s+\w+)?)\.", 0)  # no brackets
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern.pattern, s)
-        if match:
-            return match.group(pattern.group).strip('.').strip(' ')
-
-    return None
-
-
-def estimate_date(parsed_date: str, period_start_date: pd.Timestamp, period_end_date: pd.Timestamp) -> pd.Timestamp:
-    if parsed_date is None:
-        return pd.Timestamp(np.random.uniform(period_start_date.to_datetime64(), period_end_date.to_datetime64()))
-
-    first_try_year = estimate_date_for_given_year(parsed_date, period_start_date)
-    if period_start_date <= first_try_year <= period_end_date:
-        return pd.to_datetime(first_try_year)
-
-    second_try_year = estimate_date_for_given_year(parsed_date, period_end_date)
-    if period_start_date<= second_try_year <= period_end_date:
-        return pd.to_datetime(second_try_year)
-
-    raise ValueError(f"Cannot find adequate date for {parsed_date} between {period_start_date} and {period_end_date}")
-
-
-def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) -> datetime.datetime:
-    year = period_date.year
-
-    split_parsed_date = parsed_date.split(" ")
-    month = split_parsed_date[0].capitalize()
-
-    if month in calendar.month_name:
-        month_format = "%B"
-    elif month in calendar.month_abbr:
-        month_format = "%b"
-    else:
-        raise ValueError(f"Cannot find valid month from {month}")
-
-    month_num = datetime.datetime.strptime(month, month_format).month
-
-    if len(split_parsed_date) > 1 and split_parsed_date[1].isnumeric():
-        day = int(split_parsed_date[1])
-    else:
-        # need to estimate day
-        last_day_of_month = calendar.monthrange(year, month_num)[1]
-        day = np.random.randint(1, last_day_of_month + 1)
-
-    return datetime.datetime(year, month_num, day)
-
-
 filename = 'data/incidents.txt'
 
 with open(filename) as file:
@@ -150,5 +61,19 @@ incident_df = pd.DataFrame(incidents_cleaned, columns=['full_incident'])
 incident_df = get_period_boundaries(incident_df)
 
 incident_df['parsed_date'] = incident_df.full_incident.apply(extract_possible_incident_date)
-incident_df['estimated_date'] = incident_df \
+incident_df['incident_at'] = incident_df \
     .apply(lambda x: estimate_date(x.parsed_date, x.period_start_date, x.period_end_date), axis=1)
+
+incident_df['description'] = incident_df \
+    .apply(lambda x: x.full_incident.replace(x.parsed_date or '', '').replace('[]', '').strip(' ').strip('.'), axis=1)
+
+# get into format for db insertion
+incident_df['user_id'] = 1
+incident_df['category'] = None
+incident_df['subcategory'] = None
+
+upload_df = incident_df[['user_id', 'incident_at', 'category', 'subcategory', 'description']]
+
+upload_data(upload_df)
+
+# todo: add priority and other columns
