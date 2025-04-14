@@ -32,14 +32,20 @@ def get_period_boundaries(incident_df: pd.DataFrame) -> pd.DataFrame:
     incident_df['period'] = np.where(incident_df.full_incident.str.startswith("#"),
                                      incident_df.full_incident.str.strip("# "), np.nan)
 
-    incident_df = incident_df.ffill()
-    incident_df[['period_start_date_str', 'period_end_date_str']] = incident_df['period'].str.split('-', expand=True)
-    incident_df['period_start_date'] = pd.to_datetime(incident_df['period_start_date_str'], format='mixed')
-    incident_df['period_end_date'] = pd.to_datetime(incident_df['period_end_date_str'], format='mixed') + MonthEnd(0)
+    if len(incident_df) == sum(incident_df.period.isna()):
+        # there are no major date headers
+        incident_df.drop(columns='period', inplace=True)
+        incident_df[['period_start_date', 'period_end_date']] = np.nan
 
-    # remove unnecessary headers and columns
-    incident_df = incident_df[~incident_df.full_incident.str.startswith('#')] \
-        .drop(columns=['period', 'period_start_date_str', 'period_end_date_str'])
+    else:
+        incident_df = incident_df.ffill()
+        incident_df[['period_start_date_str', 'period_end_date_str']] = incident_df['period'].str.split('-', expand=True)
+        incident_df['period_start_date'] = pd.to_datetime(incident_df['period_start_date_str'], format='mixed')
+        incident_df['period_end_date'] = pd.to_datetime(incident_df['period_end_date_str'], format='mixed') + MonthEnd(0)
+
+        # remove unnecessary headers and columns
+        incident_df = incident_df[~incident_df.full_incident.str.startswith('#')] \
+            .drop(columns=['period', 'period_start_date_str', 'period_end_date_str'])
 
     return incident_df
 
@@ -107,30 +113,37 @@ def upload_data(upload_df: pd.DataFrame) -> None:
             CREATE TEMPORARY TABLE tmp_incident (   
             user_id             integer not null,
             incident_at         timestamp with time zone,
-            category            varchar,
-            subcategory        varchar,
-            description         varchar);
-    
+            category            character varying,
+            subcategory         character varying,
+            severity            character varying,
+            custom_label        character varying,
+            description         character varying);
         """))
 
         upload_df.to_sql("tmp_incident", txn, if_exists='append', index=False, chunksize=500, method='multi')
 
         r = txn.execute(text("""
             INSERT INTO incident.incident as i 
-            (user_id, incident_at, category, subcategory, description)
+            (user_id, incident_at, category, subcategory, severity, custom_label, description)
                 SELECT t.user_id
                 , t.incident_at
                 , t.category
                 , t.subcategory
+                , t.severity
+                , t.custom_label
                 , t.description
                 FROM tmp_incident t
-            ON CONFLICT (user_id, incident_at, description) 
+            ON CONFLICT (user_id, description) 
             DO UPDATE SET
-                category = EXCLUDED.category
+                incident_at = EXCLUDED.incident_at
+                , category = EXCLUDED.category
                 , subcategory = EXCLUDED.subcategory
+                , severity = EXCLUDED.severity
+                , custom_label = EXCLUDED.custom_label
             WHERE i.category is distinct from EXCLUDED.category 
             or i.subcategory is distinct from EXCLUDED.subcategory
-    
+            or i.severity is distinct from EXCLUDED.severity
+            or i.custom_label is distinct from EXCLUDED.custom_label
     
         """))
         logging.info(f"Rows upserted: {r.rowcount}")
@@ -138,6 +151,3 @@ def upload_data(upload_df: pd.DataFrame) -> None:
         txn.execute(text("""DROP TABLE IF EXISTS tmp_incident;"""))
 
     return
-
-    # change subcategory
-    # add priority and other columns

@@ -7,7 +7,9 @@ engine = get_engine()
 
 df = pd.read_sql("""
     SELECT incident_id, incident_at FROM incident.incident
-    WHERE user_id = 1; 
+    WHERE TRUE
+        and user_id = 1 
+        and incident_at is not null
 """, engine)
 
 g = ggplot(df, aes(x='incident_at')) + geom_histogram(fill='darkgreen') + theme_light() + \

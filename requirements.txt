@@ -1,0 +1,6 @@
+alembic==1.15.2
+lets-plot==4.6.2
+numpy==2.2.4
+pandas==2.2.3
+psycopg2-binary==2.9.10
+SQLAlchemy==2.0.40
