@@ -51,7 +51,7 @@ def get_period_boundaries(incident_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def extract_possible_incident_date(s: str) -> str:
-    # look for dates given possible patterns
+    # look for dates given possible patterns:  e.g., "[oct 22]", "january 28."
     patterns = [
         PatternGroup(r"^\s*\[(.*?)\]", 1),  # brackets
         PatternGroup(r"^\s*(\w+(\s+\w+)?)\.", 0)  # no brackets
@@ -66,6 +66,11 @@ def extract_possible_incident_date(s: str) -> str:
 
 
 def estimate_date(parsed_date: str, period_start_date: pd.Timestamp, period_end_date: pd.Timestamp) -> pd.Timestamp:
+    """
+    Figure out what the estimated date could be.  If only the time period is given, give a random date
+    within that.  If not, guess which year it may belong to (because some time periods overlap the end and
+    beginnings of the year).  Probably a slicker way to do this, but this was a quick and easy one.
+    """
     if parsed_date is None:
         return pd.Timestamp(np.random.uniform(period_start_date.to_datetime64(), period_end_date.to_datetime64()))
 
@@ -81,6 +86,9 @@ def estimate_date(parsed_date: str, period_start_date: pd.Timestamp, period_end_
 
 
 def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) -> datetime.datetime:
+    """
+    For a given year, what would the actual timestamp be?
+    """
     year = period_date.year
 
     split_parsed_date = parsed_date.split(" ")
@@ -106,6 +114,10 @@ def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) ->
 
 
 def upload_data(upload_df: pd.DataFrame) -> None:
+    """
+    This uploads data to a temp table and then swaps it over using an upsert, to minimize any downtime with uploads
+    to a production database
+    """
     engine = get_engine()
 
     with engine.begin() as txn:

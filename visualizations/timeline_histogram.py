@@ -16,3 +16,4 @@ g = ggplot(df, aes(x='incident_at')) + geom_histogram(fill='darkgreen') + theme_
     labs(x="Date", y="Frequency of Incidents", title="Timeline of Incidents")
 g.show()
 ggsave(g, 'timeline.pdf', path='plots/')
+ggsave(g, 'timeline.html', path='plots/')
