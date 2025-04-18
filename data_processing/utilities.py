@@ -156,6 +156,7 @@ def upload_data(upload_df: pd.DataFrame) -> None:
             or i.subcategory is distinct from EXCLUDED.subcategory
             or i.severity is distinct from EXCLUDED.severity
             or i.custom_label is distinct from EXCLUDED.custom_label
+            or i.incident_at is distinct from EXCLUDED.incident_at
     
         """))
         logging.info(f"Rows upserted: {r.rowcount}")
