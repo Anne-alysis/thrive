@@ -2,5 +2,9 @@ alembic==1.15.2
 lets-plot==4.6.2
 numpy==2.2.4
 pandas==2.2.3
+plotly_calplot==0.1.20
 psycopg2-binary==2.9.10
+streamlit==1.44.1
+streamlit-calendar==1.2.1
+streamlit-letsplot==0.0.3
 SQLAlchemy==2.0.40
