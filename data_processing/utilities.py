@@ -11,6 +11,8 @@ from sqlalchemy import text
 
 from db_utils import get_engine
 
+engine = get_engine()
+
 
 # this is super overkill perhaps, but fun to see these in action
 @dataclass
@@ -113,12 +115,28 @@ def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) ->
     return datetime.datetime(year, month_num, day)
 
 
+def apply_categories(incident_df: pd.DataFrame) -> pd.DataFrame:
+    # placeholder for actual categorization
+    category_df = pd.read_sql("""
+        SELECT category, subcategory
+        FROM incident.category 
+    """, engine)
+
+    incident_df[['category', 'subcategory']] = None
+    for i in range(len(incident_df)):
+        random_category_idx = np.random.randint(0, len(category_df) -1)
+        category_row = category_df.iloc[random_category_idx]
+        incident_df.at[i, 'category'] = category_row.category
+        incident_df.at[i, 'subcategory']= category_row.subcategory
+
+    return incident_df
+
+
 def upload_data(upload_df: pd.DataFrame) -> None:
     """
     This uploads data to a temp table and then swaps it over using an upsert, to minimize any downtime with uploads
     to a production database
     """
-    engine = get_engine()
 
     with engine.begin() as txn:
         txn.execute(text("""

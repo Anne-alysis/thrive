@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import pandas as pd
 
-from data_processing.utilities import get_period_boundaries, extract_possible_incident_date, estimate_date, upload_data
+from data_processing.utilities import get_period_boundaries, extract_possible_incident_date, estimate_date, upload_data, apply_categories
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -77,10 +77,10 @@ def transform_data_for_upload(incident_df: pd.DataFrame, infer_dates: bool) -> p
         .apply(lambda x: x.full_incident.replace(x.parsed_date or '', '').replace('[]', '').strip(' ').strip('.'),
                axis=1)
 
+    incident_df = apply_categories(incident_df)
+
     # get into format for db insertion
     incident_df['user_id'] = 1
-    incident_df['category'] = None
-    incident_df['subcategory'] = None
     incident_df['severity'] = None
     incident_df['custom_label'] = None
 
