@@ -18,7 +18,7 @@ start_date, end_date = set_date_range(df)
 
 # get custom label info
 custom_labels = [_.capitalize() for _ in df.custom_label.unique()]
-filtered_df = filter_by_generic_label('custom_label', ['All'] + custom_labels, df)
+filtered_df = filter_by_generic_label('custom_label', custom_labels, df)
 
 # filter by date
 filtered_df = filter_data_by_date_range(filtered_df, start_date, end_date)
