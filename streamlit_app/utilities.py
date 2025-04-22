@@ -6,40 +6,40 @@ import streamlit as st
 from sqlalchemy import create_engine
 
 
-# Note: this is code that also exists in db_utils.py more generally but couldn't
-# be reached by the streamlit_app app, so for simplicity, adding here for now
-def get_engine():
-    db_url = os.environ.get("LOCAL_DB_URL")
-    if db_url is None:
-        raise ValueError("Cannot get url! ")
 
-    return create_engine(db_url)
+def get_category_level_data(engine) -> pd.DataFrame:
+
+    # this assumes (hopefully, one major category per incident...)
+    return pd.read_sql("""
+        SELECT i.incident_id
+        , incident_at::date as date
+        , severity, custom_label, description
+        , string_agg(distinct category, ',') as category
+        FROM incident.incident i 
+        LEFT JOIN incident.incident_category ic on i.incident_id = ic.incident_id
+        WHERE TRUE
+            and user_id = 1 
+            and incident_at is not null
+        GROUP BY 1,2,3,4,5
+    """, engine)
 
 
-def get_data() -> pd.DataFrame:
-    engine = get_engine()
+def get_subcategory_level_data(engine) -> pd.DataFrame:
 
-    if "data" not in st.session_state:
-        # startup
+    # this assumes (hopefully, one major category per incident...)
+    return pd.read_sql("""
+        SELECT i.incident_id
+        , incident_at::date as date
+        , severity, custom_label, description
+        , category
+        , subcategory
+        FROM incident.incident i 
+        LEFT JOIN incident.incident_category ic on i.incident_id = ic.incident_id
+        WHERE TRUE
+            and user_id = 1 
+    """, engine)
 
-        # this assumes (hopefully, one major category per incident...)
-        df = pd.read_sql("""
-            SELECT i.incident_id
-            , incident_at::date as date
-            , severity, custom_label, description
-            , string_agg(distinct category, ',') as category
-            FROM incident.incident i 
-            LEFT JOIN incident.incident_category ic on i.incident_id = ic.incident_id
-            WHERE TRUE
-                and user_id = 1 
-                and incident_at is not null
-            GROUP BY 1,2,3,4,5
-        """, engine)
 
-        st.session_state.df = df
-        return df
-
-    return st.session_state.df
 
 
 def set_date_range(df: pd.DataFrame) -> (str, str):

@@ -1,13 +1,16 @@
 import plotly.io as pio
 import streamlit as st
+from db_utils import get_engine
 from plotly_calplot import calplot
-from streamlit_app.utilities import get_data, set_date_range, filter_by_generic_label, filter_data_by_date_range
+from streamlit_app.utilities import get_category_level_data, set_date_range, filter_by_generic_label, \
+    filter_data_by_date_range
 
 st.set_page_config(page_title="Calendar Heatmap View", layout='wide')
 
 st.write("# Calendar Heatmap View")
 
-df = get_data()
+engine = get_engine()
+df = get_category_level_data(engine)
 start_date, end_date = set_date_range(df)
 
 # get custom label info

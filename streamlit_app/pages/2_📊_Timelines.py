@@ -1,13 +1,16 @@
 import pandas as pd
 import streamlit as st
+from db_utils import get_engine
 from lets_plot import *
-from streamlit_app.utilities import get_data, set_date_range, filter_data_by_date_range, filter_by_generic_label
+from streamlit_app.utilities import get_category_level_data, set_date_range, filter_data_by_date_range, \
+    filter_by_generic_label
 from streamlit_letsplot import st_letsplot
 
 LetsPlot.setup_html()
 st.set_page_config(page_title="Trends", layout='wide')
+engine = get_engine()
 
-df = get_data()
+df = get_category_level_data(engine)
 
 st.write("# Trend Examples")
 # get date range
