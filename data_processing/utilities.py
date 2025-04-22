@@ -115,23 +115,6 @@ def estimate_date_for_given_year(parsed_date: str, period_date: pd.Timestamp) ->
     return datetime.datetime(year, month_num, day)
 
 
-def apply_categories(incident_df: pd.DataFrame) -> pd.DataFrame:
-    # placeholder for actual categorization
-    category_df = pd.read_sql("""
-        SELECT category, subcategory
-        FROM incident.category 
-    """, engine)
-
-    incident_df[['category', 'subcategory']] = None
-    for i in range(len(incident_df)):
-        random_category_idx = np.random.randint(0, len(category_df) -1)
-        category_row = category_df.iloc[random_category_idx]
-        incident_df.at[i, 'category'] = category_row.category
-        incident_df.at[i, 'subcategory']= category_row.subcategory
-
-    return incident_df
-
-
 def upload_data(upload_df: pd.DataFrame) -> None:
     """
     This uploads data to a temp table and then swaps it over using an upsert, to minimize any downtime with uploads
@@ -143,8 +126,6 @@ def upload_data(upload_df: pd.DataFrame) -> None:
             CREATE TEMPORARY TABLE tmp_incident (   
             user_id             integer not null,
             incident_at         timestamp with time zone,
-            category            character varying,
-            subcategory         character varying,
             severity            character varying,
             custom_label        character varying,
             description         character varying);
@@ -154,11 +135,9 @@ def upload_data(upload_df: pd.DataFrame) -> None:
 
         r = txn.execute(text("""
             INSERT INTO incident.incident as i 
-            (user_id, incident_at, category, subcategory, severity, custom_label, description)
+            (user_id, incident_at, severity, custom_label, description)
                 SELECT t.user_id
                 , t.incident_at
-                , t.category
-                , t.subcategory
                 , t.severity
                 , t.custom_label
                 , t.description
@@ -166,13 +145,9 @@ def upload_data(upload_df: pd.DataFrame) -> None:
             ON CONFLICT (user_id, description) 
             DO UPDATE SET
                 incident_at = EXCLUDED.incident_at
-                , category = EXCLUDED.category
-                , subcategory = EXCLUDED.subcategory
                 , severity = EXCLUDED.severity
                 , custom_label = EXCLUDED.custom_label
-            WHERE i.category is distinct from EXCLUDED.category 
-            or i.subcategory is distinct from EXCLUDED.subcategory
-            or i.severity is distinct from EXCLUDED.severity
+            WHERE i.severity is distinct from EXCLUDED.severity
             or i.custom_label is distinct from EXCLUDED.custom_label
             or i.incident_at is distinct from EXCLUDED.incident_at
     
