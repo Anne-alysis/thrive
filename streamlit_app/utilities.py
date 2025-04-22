@@ -22,7 +22,10 @@ def get_data() -> pd.DataFrame:
         # startup
 
         df = pd.read_sql("""
-            SELECT incident_id, incident_at, description FROM incident.incident
+            SELECT incident_id
+            , incident_at::date as date
+            , category, subcategory, severity, custom_label, description 
+            FROM incident.incident
             WHERE TRUE
                 and user_id = 1 
                 and incident_at is not null
