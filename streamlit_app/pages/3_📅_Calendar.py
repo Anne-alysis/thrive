@@ -1,9 +1,13 @@
-from streamlit_app.utilities import get_data
-from streamlit_calendar import calendar
+from typing import Dict
+
+import pandas as pd
 import streamlit as st
+from streamlit_app.utilities import get_data, set_date_range, filter_by_generic_label, filter_data_by_date_range
+from streamlit_calendar import calendar
 
-df = get_data()
+st.set_page_config(page_title="Calendar View", layout='wide')
 
+severity_colors = {'HIGH': 'red', 'MEDIUM': 'yellow', 'LOW': 'black'}
 
 calendar_options = {
     "editable": True,
@@ -11,37 +15,13 @@ calendar_options = {
     "headerToolbar": {
         "left": "today prev,next",
         "center": "title",
-      #  "right": "dayGridMonth",
+        #  "right": "dayGridMonth",
     },
     "initialView": "dayGridMonth",
 
 }
-calendar_events = [
-    {
-        "title": "Pick up kids",
-        "start": "2025-04-30T08:30:00",
-        "end": "2025-04-30T10:30:00",
-        "resourceId": "a",
-        "textColor": 'red',
-        "backgroundColor": 'green',
 
-       # "borderColor": 'purple'
-    },
-    {
-        "title": "boreas",
-        "start": "2025-04-14T08:30:00",
-        "end": "2025-04-14T10:30:00",
-              "backgroundColor": "#FF6C6C",
-              "borderColor": "#FF6C6C"
-    },
-    {
-        "title": "Event 3",
-        "start": "2023-07-31T10:40:00",
-        "end": "2023-07-31T12:30:00",
-        "resourceId": "a",
-    }
-]
-custom_css="""
+custom_css = """
     .fc-event-past {
         opacity: 0.8;
     }
@@ -56,10 +36,33 @@ custom_css="""
     }
 """
 
-calendar = calendar(
+
+def form_event(row: pd.Series) -> Dict[str, str]:
+    return {
+        "title": row.description.split('.')[0],
+        "start": str(row.date),
+        "end": str(row.date),
+        "backgroundColor": severity_colors.get(row.severity, 'black'),
+        "severity": row.severity,
+        "category": row.category,
+        "subcategory": row.subcategory,
+        "custom_label": row.custom_label
+    }
+
+
+st.write("# Calendar View")
+
+df = get_data()
+
+# get custom label info
+filtered_df = filter_by_generic_label('severity', ['High', 'Medium', 'Low'], df)
+
+calendar_events = [form_event(row) for row in filtered_df.itertuples()]
+
+displayed_calendar = calendar(
     events=calendar_events,
     options=calendar_options,
-    #custom_css=custom_css,
-    key='calendar', # Assign a widget key to prevent state loss
-    )
-#st.write(calendar)
+    # custom_css=custom_css,
+    # key='calendar',  # Assign a widget key to prevent state loss [this seems to be messing with the filtering, so removing for now]
+)
+st.write(displayed_calendar)
