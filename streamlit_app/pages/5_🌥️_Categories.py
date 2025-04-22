@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -26,16 +28,16 @@ df = pd.read_sql("""
  """, engine)
 
 
-def get_agg_plot(df: pd.DataFrame, group: str) -> pd.DataFrame:
-    n_groups = df[group].nunique()
+def get_agg_plot(df: pd.DataFrame, group: List[str]) -> pd.DataFrame:
+    n_groups = df[group[-1]].nunique()
     max_axis = n_groups * 1.2
     agg_df = df.groupby(group, as_index=False)['incident_id'].count().rename(columns={'incident_id': 'n'})
 
     agg_df['x'] = np.linspace(1, n_groups + 1, num=n_groups)
     agg_df['y'] = 0
-    st.dataframe(agg_df[[group, 'n']].sort_values(by='n', ascending=False), hide_index=True, width=300)
+    st.dataframe(agg_df[group + ['n']].sort_values(by='n', ascending=False), hide_index=True, width=300)
 
-    g = ggplot(agg_df, aes(x='x', y='y')) + geom_point(aes(size='n', col=group)) + theme_void() + \
+    g = ggplot(agg_df, aes(x='x', y='y')) + geom_point(aes(size='n', col=group[-1])) + theme_void() + \
         scale_size(range=[1, n_groups * 2]) + lims([0, max_axis * 1.5], [-2, 2]) + guides(size='none') + \
         ggsize(800, 400)
     g.show()
@@ -44,10 +46,9 @@ def get_agg_plot(df: pd.DataFrame, group: str) -> pd.DataFrame:
 
 
 st.write("# Categories")
-g = get_agg_plot(df, 'category')
+g = get_agg_plot(df, ['category'])
 st_letsplot(g)
 
 st.write(" # Subcategories")
-g = get_agg_plot(df, 'subcategory')
+g = get_agg_plot(df, ['category', 'subcategory'])
 st_letsplot(g)
-
