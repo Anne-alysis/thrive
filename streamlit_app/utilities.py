@@ -22,14 +22,18 @@ def get_data() -> pd.DataFrame:
     if "data" not in st.session_state:
         # startup
 
+        # this assumes (hopefully, one major category per incident...)
         df = pd.read_sql("""
-            SELECT incident_id
+            SELECT i.incident_id
             , incident_at::date as date
-            , category, subcategory, severity, custom_label, description 
-            FROM incident.incident
+            , severity, custom_label, description
+            , string_agg(distinct category, ',') as category
+            FROM incident.incident i 
+            LEFT JOIN incident.incident_category ic on i.incident_id = ic.incident_id
             WHERE TRUE
                 and user_id = 1 
                 and incident_at is not null
+            GROUP BY 1,2,3,4,5
         """, engine)
 
         st.session_state.df = df
