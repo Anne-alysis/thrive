@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import pandas as pd
 import streamlit as st
@@ -35,3 +36,38 @@ def get_data() -> pd.DataFrame:
         return df
 
     return st.session_state.df
+
+
+def set_date_range(df: pd.DataFrame) -> (str, str):
+    dates = st.date_input("Choose a date range (type in, or use drop down):",
+                          value=(df.date.min(), df.date.max()),
+                          min_value=df.date.min(),
+                          max_value=df.date.max(), format='YYYY-MM-DD')
+
+    if len(dates) != 2:
+        st.warning('Please select a date range.')
+        st.stop()
+
+    return dates[0], dates[1]
+
+
+def filter_data_by_date_range(filtered_df: pd.DataFrame, start_date: str, end_date: str) -> pd.DataFrame:
+    filtered_df = filtered_df[(filtered_df.date >= start_date) & (filtered_df.date <= end_date)]
+    filtered_df['date'] = pd.to_datetime(filtered_df.date)
+
+    return filtered_df
+
+
+def filter_by_generic_label(label: str, label_possibilities: List[str], df: pd.DataFrame) -> pd.DataFrame:
+    displayed_label = label.replace("_", " ").capitalize()
+    filtered_label = st.selectbox(f"Select {displayed_label}:", ['All'] + label_possibilities)
+
+    # filter by custom label
+    if filtered_label != 'All':
+        filtered_df = df[df[label].str.capitalize() == filtered_label]
+        st.write(f"Showing only {displayed_label}: {filtered_label}")
+
+    else:
+        filtered_df = df
+
+    return filtered_df
