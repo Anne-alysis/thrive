@@ -1,27 +1,31 @@
+import pandas as pd
+import plotly.io as pio
 import streamlit as st
 from plotly_calplot import calplot
-import matplotlib.pyplot as plt
+from streamlit_app.utilities import get_data
 
-import pandas as pd
-data = {
-    "date": pd.date_range(start="2023-01-01", end="2023-12-31", freq="D"),
-    "value": [i % 10 + 1 for i in range(365)]
-}
+df = get_data()
 
-# example case with every date filled out
-df1 = pd.DataFrame(data)
+agg_df = df.groupby('date', as_index=False).count()[['date', 'incident_at']].rename(columns={'incident_at': 'n'})
+
 fig = calplot(
-    df1,
+    agg_df,
     x="date",  # Column with date information
-    y="value",  # Column with values
+    y="n",  # Column with values
     years_title="Activity Heatmap",  # Title of the calendar
     colorscale="Greens",  # Color scale for the heatmap
     showscale=True,  # Show color bar
     dark_theme=True
 )
-
 fig.show()
 
+# fig.update_layout(height = 500,
+#                   width = 1500,
+#                   font=dict(size = 16),
+#                   margin = {'t':0, 'b':0, 'l':40})
 
+#fig.show()
+#plt.savefig(f'plots/heatmap.pdf', bbox_inches='tight')
+pio.write_image(fig, 'plots/calplot.png', engine='kaleido')
 
-st.pyplot(fig)
+st.image("plots/calplot.png", caption="Sunrise by the mountains")

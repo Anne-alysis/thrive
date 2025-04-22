@@ -35,14 +35,21 @@ if filtered_label != 'All':
 else:
     filtered_df = df
 
+include_categories = st.checkbox("Include categories")
+
 # filter by date
 filtered_df = filtered_df[(filtered_df.date >= start_date) & (filtered_df.date <= end_date)]
 filtered_df['date'] = pd.to_datetime(filtered_df.date)
 
 st.write("## Histogram")
 
-g = ggplot(filtered_df, aes(x='date')) + geom_histogram(fill='darkgreen') + theme_light() + \
+g = ggplot(filtered_df, aes(x='date')) + theme_light() + \
     labs(x="Date", y="Frequency of Incidents", title="Timeline of Incidents")
+
+if include_categories:
+    g = g + geom_histogram(aes(fill='category'))
+else:
+    g = g + geom_histogram(fill='darkgreen')
 g.show()
 
 st_letsplot(g)
