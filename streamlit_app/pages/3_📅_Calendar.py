@@ -2,7 +2,8 @@ from typing import Dict
 
 import pandas as pd
 import streamlit as st
-from streamlit_app.utilities import get_data, set_date_range, filter_by_generic_label, filter_data_by_date_range
+from db_utils import get_engine
+from streamlit_app.utilities import get_subcategory_level_data, set_date_range, filter_by_generic_label, filter_data_by_date_range
 from streamlit_calendar import calendar
 
 st.set_page_config(page_title="Calendar View", layout='wide')
@@ -52,10 +53,13 @@ def form_event(row: pd.Series) -> Dict[str, str]:
 
 st.write("# Calendar View")
 
-df = get_data()
+engine = get_engine()
+df = get_subcategory_level_data(engine)
+agg_df = df.groupby(['incident_id', 'date', 'severity', 'custom_label', 'description',
+                     'category'], as_index=False).agg({'subcategory': lambda x: ', '.join(x)})
 
 # get custom label info
-filtered_df = filter_by_generic_label('severity', ['High', 'Medium', 'Low'], df)
+filtered_df = filter_by_generic_label('severity', ['High', 'Medium', 'Low'], agg_df)
 
 calendar_events = [form_event(row) for row in filtered_df.itertuples()]
 
