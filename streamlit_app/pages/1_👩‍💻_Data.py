@@ -6,4 +6,4 @@ st.write("# The Base Data")
 
 df = get_data()
 
-st.dataframe(df)
+st.dataframe(df, hide_index=True)

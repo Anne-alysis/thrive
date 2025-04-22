@@ -11,7 +11,7 @@ df = get_data()
 start_date, end_date = set_date_range(df)
 
 # get custom label info
-filtered_df = filter_by_generic_label('severity', ['All', 'High', 'Medium', 'Low'], df)
+filtered_df = filter_by_generic_label('severity', ['High', 'Medium', 'Low'], df)
 
 # filter by date
 filtered_df = filter_data_by_date_range(filtered_df, start_date, end_date)
@@ -19,7 +19,6 @@ filtered_df = filter_data_by_date_range(filtered_df, start_date, end_date)
 if filtered_df.empty:
     st.write("No data to display")
 else:
-
 
     agg_df = filtered_df.groupby('date', as_index=False)['incident_id'] \
         .count().rename(columns={'incident_id': 'n'})
@@ -33,7 +32,7 @@ else:
         showscale=True,  # Show color bar
         dark_theme=True
     )
-    #fig.show()
+    # fig.show()
 
     # fig.update_layout(height = 500,
     #                   width = 1500,
