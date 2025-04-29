@@ -1,14 +1,10 @@
-import os
 from typing import List
 
 import pandas as pd
 import streamlit as st
-from sqlalchemy import create_engine
-
 
 
 def get_category_level_data(engine) -> pd.DataFrame:
-
     # this assumes (hopefully, one major category per incident...)
     return pd.read_sql("""
         SELECT i.incident_id
@@ -25,7 +21,6 @@ def get_category_level_data(engine) -> pd.DataFrame:
 
 
 def get_subcategory_level_data(engine) -> pd.DataFrame:
-
     # this assumes (hopefully, one major category per incident...)
     return pd.read_sql("""
         SELECT i.incident_id
@@ -40,13 +35,12 @@ def get_subcategory_level_data(engine) -> pd.DataFrame:
     """, engine)
 
 
-
-
 def set_date_range(df: pd.DataFrame) -> (str, str):
+    min_date, max_date = df[df.date.notnull()].date.min(), df[df.date.notnull()].date.max()
     dates = st.date_input("Choose a date range (type in, or use drop down):",
-                          value=(df.date.min(), df.date.max()),
-                          min_value=df.date.min(),
-                          max_value=df.date.max(), format='YYYY-MM-DD')
+                          value=(min_date, max_date),
+                          min_value=min_date,
+                          max_value=max_date, format='YYYY-MM-DD')
 
     if len(dates) != 2:
         st.warning('Please select a date range.')

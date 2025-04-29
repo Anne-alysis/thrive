@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from db_utils import get_engine
 from lets_plot import *
+from streamlit_app.utilities import set_date_range, filter_data_by_date_range
 
 LetsPlot.setup_html()
 
@@ -18,6 +19,7 @@ engine = get_engine()
 # this assumes (hopefully, one major category per incident...)
 df = pd.read_sql("""
      SELECT i.incident_id
+     , i.incident_at::date as date
      , category
      , subcategory
      FROM incident.incident i 
@@ -51,7 +53,7 @@ def get_agg_plot(df: pd.DataFrame, group: List[str]) -> None:
             sizemode='area',  # Area proportional to value
             sizeref=2. * max(agg_df['n']) / (60. ** 2),  # Scale bubbles
             color=np.arange(n_groups),  # Different color for each category
-            colorscale='Plasma',
+            colorscale='Turbo',
             showscale=False,
             opacity=0.8,
             line=dict(width=1, color='black')
@@ -85,8 +87,13 @@ def get_agg_plot(df: pd.DataFrame, group: List[str]) -> None:
     return
 
 
+start_date, end_date = set_date_range(df)
+
+# filter by date
+filtered_df = filter_data_by_date_range(df, start_date, end_date)
+
 st.write("# Categories")
-get_agg_plot(df, ['category'])
+get_agg_plot(filtered_df, ['category'])
 
 st.write(" # Subcategories")
-get_agg_plot(df, ['category', 'subcategory'])
+get_agg_plot(filtered_df, ['category', 'subcategory'])

@@ -91,10 +91,11 @@ def main():
     parser.add_argument('--infer-dates', help='Add if want to estimate dates from headers',
                         action='store_true', default=False)
 
-    args = parser.parse_known_args()
+    args = parser.parse_args()
     if args.filename:
         filename = args.filename
     else:
+        # this is really just here for local, interactive testing
         filename = 'data/incidents.txt'
 
     infer_dates = True if args.infer_dates else False

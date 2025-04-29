@@ -13,4 +13,4 @@ st.dataframe(df, hide_index=True)
 
 st.write("## Subcategories")
 sub_df = get_subcategory_level_data(engine)
-st.dataframe(sub_df.drop(columns=['description', 'severity', 'custom_label']), hide_index=True)
+st.dataframe(sub_df.drop(columns=['description', 'date', 'severity', 'custom_label']), hide_index=True)
