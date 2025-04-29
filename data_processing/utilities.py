@@ -126,30 +126,36 @@ def upload_data(upload_df: pd.DataFrame) -> None:
             CREATE TEMPORARY TABLE tmp_incident (   
             user_id             integer not null,
             incident_at         timestamp with time zone,
-            severity            character varying,
-            custom_label        character varying,
-            description         character varying);
+         --   severity            character varying,
+         --   custom_label        character varying,
+            description         character varying,
+            description_hash    character varying);
         """))
 
         upload_df.to_sql("tmp_incident", txn, if_exists='append', index=False, chunksize=500, method='multi')
 
         r = txn.execute(text("""
             INSERT INTO incident.incident as i 
-            (user_id, incident_at, severity, custom_label, description)
+            (user_id, incident_at, description, description_hash)
                 SELECT t.user_id
                 , t.incident_at
-                , t.severity
-                , t.custom_label
+              --  , t.severity
+              --  , t.custom_label
                 , t.description
+                , t.description_hash
                 FROM tmp_incident t
-            ON CONFLICT (user_id, description) 
+            ON CONFLICT (user_id, description_hash) 
             DO UPDATE SET
                 incident_at = EXCLUDED.incident_at
-                , severity = EXCLUDED.severity
-                , custom_label = EXCLUDED.custom_label
-            WHERE i.severity is distinct from EXCLUDED.severity
-            or i.custom_label is distinct from EXCLUDED.custom_label
+              --  , severity = EXCLUDED.severity
+              --  , custom_label = EXCLUDED.custom_label
+                , description = EXCLUDED.description
+            WHERE TRUE
+            -- normally i would have these in here, but since they are set outside this process, they are removed
+          -- i.severity is distinct from EXCLUDED.severity
+          --  or i.custom_label is distinct from EXCLUDED.custom_label
             or i.incident_at is distinct from EXCLUDED.incident_at
+            or i.description is distinct from EXCLUDED.description
     
         """))
         logging.info(f"Rows upserted: {r.rowcount}")
