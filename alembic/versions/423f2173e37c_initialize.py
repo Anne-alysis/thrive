@@ -58,14 +58,15 @@ def upgrade() -> None:
             severity            character varying, 
             custom_label        character varying, 
             description         character varying,
+            description_hash    character varying,
             thrive_created_dtm  timestamp with time zone not null default now(),
             thrive_modified_dtm timestamp with time zone not null default now()
         );
     """)
 
     # note: i do not love using both a timestamp and description.  this seems weird and inefficient but for now it works
-    op.execute("CREATE UNIQUE INDEX on incident.incident (user_id, incident_at, description)")
-    op.execute("CREATE UNIQUE INDEX on incident.incident (user_id, description)")
+    op.execute("CREATE UNIQUE INDEX on incident.incident (user_id, incident_at, description_hash)")
+    op.execute("CREATE UNIQUE INDEX on incident.incident (user_id, description_hash)")
 
     conn = op.get_bind()
 
