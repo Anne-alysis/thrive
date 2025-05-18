@@ -34,5 +34,3 @@ with engine.begin() as txn:
 
     txn.execute(text("""DROP TABLE IF EXISTS tmp_incident_category;"""))
 
-
-    

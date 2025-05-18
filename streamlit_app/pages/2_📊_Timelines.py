@@ -17,7 +17,7 @@ st.write("# Trend Examples")
 start_date, end_date = set_date_range(df)
 
 # get custom label info
-custom_labels = [_.capitalize() for _ in df.custom_label.unique()]
+custom_labels = [_.capitalize() for _ in df.custom_label.unique() if _ is not None]
 filtered_df = filter_by_generic_label('custom_label', custom_labels, df)
 
 # filter by date
