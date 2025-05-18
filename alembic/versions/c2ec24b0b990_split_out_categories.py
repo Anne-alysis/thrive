@@ -31,6 +31,8 @@ def upgrade() -> None:
         )
     """)
 
+    op.execute("CREATE UNIQUE INDEX on incident.incident_category (incident_id, subcategory)")
+
     op.execute("""
         ALTER TABLE incident.incident 
         DROP COLUMN category, 
