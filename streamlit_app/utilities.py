@@ -50,7 +50,9 @@ def set_date_range(df: pd.DataFrame) -> (str, str):
 
 
 def filter_data_by_date_range(filtered_df: pd.DataFrame, start_date: str, end_date: str) -> pd.DataFrame:
-    filtered_df = filtered_df[(filtered_df.date >= start_date) & (filtered_df.date <= end_date)]
+    # explicitly keep any incidents with no date assigned
+    filtered_df = filtered_df[((filtered_df.date >= start_date) & (filtered_df.date <= end_date))
+                              | (filtered_df.date.isnull())]
     filtered_df['date'] = pd.to_datetime(filtered_df.date)
 
     return filtered_df
