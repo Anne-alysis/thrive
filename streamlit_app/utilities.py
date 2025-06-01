@@ -10,8 +10,8 @@ def get_category_level_data(engine) -> pd.DataFrame:
         SELECT i.incident_id
         , incident_at::date as date
         , severity, custom_label, description
-        , string_agg(distinct category, ',') as category
-        , string_agg(distinct subcategory, ',') as subcategories
+        , string_agg(distinct category, ', ') as category
+        , string_agg(distinct subcategory, ', ') as subcategories
         FROM incident.incident i 
         LEFT JOIN incident.incident_category ic on i.incident_id = ic.incident_id
         WHERE TRUE
