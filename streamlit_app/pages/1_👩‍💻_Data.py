@@ -9,8 +9,5 @@ st.write("# The Base Data")
 
 df = get_category_level_data(engine)
 st.write("## Categories")
-st.dataframe(df, hide_index=True)
+st.dataframe(df.drop(columns='incident_id'), hide_index=True)
 
-st.write("## Subcategories")
-sub_df = get_subcategory_level_data(engine)
-st.dataframe(sub_df.drop(columns=['description', 'date', 'severity', 'custom_label']), hide_index=True)
