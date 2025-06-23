@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
+import plotly.express as px
+
 
 
 """
@@ -97,6 +99,9 @@ def get_incident(date: str) -> Incident:
         dotColor=category.color
     )
 
+def serialize(data_list) -> str:
+    return json.dumps([_.to_dict() for _ in data_list])
+
 
 n_incidents = 100
 start_date = datetime.date.fromisoformat('2025-01-01')
@@ -106,5 +111,30 @@ dates = get_random_dates_from_range(start_date, end_date, n_incidents)
 
 incidents = [get_incident(_) for _ in dates]
 
-json_output = json.dumps([incident.to_dict() for incident in incidents])
+json_output = serialize(incidents)
 print(json_output)
+
+df = pd.DataFrame(incidents)
+
+
+####################
+# donut chart in python
+
+agg_df = df['name'].value_counts(normalize=True).reset_index()
+fig = px.pie(agg_df, values='proportion', names='name', hole=0.4)
+fig.update_traces(textposition='inside', textinfo='percent+label')
+fig.show()
+
+
+
+### export aggregate for highcharts
+@dataclass_json
+@dataclass
+class AggregateIncident:
+    name: str
+    y: float
+
+aggregate_incidents = [AggregateIncident(row.name, np.round(row.proportion * 100, 1)) for row in agg_df.itertuples()]
+json_output = serialize(aggregate_incidents)
+print(json_output)
+print(len(incidents))
