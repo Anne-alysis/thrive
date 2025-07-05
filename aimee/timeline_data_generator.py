@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import plotly.express as px
 
-
-
 """
 This is a helper script to generate fake data to use as examples with the Highcharts Timeline library
 
@@ -17,28 +15,31 @@ https://code.highcharts.com/modules/timeline.js library
 
 """
 
-category_names = ['Missed/late pickups/drop-offs',
-                  'Failure to communicate child-related info',
-                  'Interference w/ parenting time',
-                  'Emotional outbursts in front of child',
-                  'Failure to provide necessities',
-                  'Medical neglect',
-                  'Attempt at alienation',
-                  'Police/CPS involvement',
-                  'Exposing child to inappropriate env'
-                  ]
+category_names = [
+    'Missed/late pickups/drop-offs',
+    'Failure to communicate child-related info',
+    'Interference w/ parenting time',
+    'Emotional outbursts in front of child',
+    'Failure to provide necessities',
+    'Medical neglect',
+    'Attempt at alienation',
+    'Police/CPS involvement',
+    'Exposing child to inappropriate env'
+]
 
-colors = ['#E74C3C',  # Vibrant Red
-          '#3498DB',  # Bright Blue
-          '#2ECC71',  # Emerald Green
-          '#F39C12',  # Orange
-          '#9B59B6',  # Purple
-          '#1ABC9C',  # Turquoise
-          '#E67E22',  # Carrot Orange
-          '#34495E',  # Dark Slate
-          '#F1C40F',  # Golden Yellow
-          '#95A5A6'  # Cool Gray
-          ]
+colors = [
+    '#E74C3C',  # Vibrant Red
+    '#3498DB',  # Bright Blue
+    '#2ECC71',  # Emerald Green
+    '#F39C12',  # Orange
+    '#9B59B6',  # Purple
+    '#1ABC9C',  # Turquoise
+    '#E67E22',  # Carrot Orange
+    '#34495E',  # Dark Slate
+    '#F1C40F',  # Golden Yellow
+    '#95A5A6'  # Cool Gray
+]
+
 probabilities = [0.7, 0.05, 0.05, 0.01, 0.01,
                  0.02, 0.05, 0.01, 0.1]
 
@@ -99,6 +100,7 @@ def get_incident(date: str) -> Incident:
         dotColor=category.color
     )
 
+
 def serialize(data_list) -> str:
     return json.dumps([_.to_dict() for _ in data_list])
 
@@ -116,7 +118,6 @@ print(json_output)
 
 df = pd.DataFrame(incidents)
 
-
 ####################
 # donut chart in python
 
@@ -126,13 +127,13 @@ fig.update_traces(textposition='inside', textinfo='percent+label')
 fig.show()
 
 
-
 ### export aggregate for highcharts
 @dataclass_json
 @dataclass
 class AggregateIncident:
     name: str
     y: float
+
 
 aggregate_incidents = [AggregateIncident(row.name, np.round(row.proportion * 100, 1)) for row in agg_df.itertuples()]
 json_output = serialize(aggregate_incidents)
